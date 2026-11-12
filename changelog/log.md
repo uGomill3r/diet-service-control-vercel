@@ -45,3 +45,5 @@
 - 2025-10-03T15:00:34.495226 | Entrega: 2025-10-01 | Almuerzo: True, Cena: False | Obs: 
 - 2025-10-03T15:00:48.194576 | Entrega: 2025-10-02 | Almuerzo: True, Cena: True | Obs: 
 - 2025-10-03T15:04:13.562327 | Entrega: 2025-09-11 | Almuerzo: True, Cena: False | Obs: 
+- 2026-11-12T12:00:00 | Despliegue migrado a Vercel + Neon (DATABASE_URL con pooler, hosts/CSRF de Vercel, sin WhiteNoise)
+- 2026-11-12T12:00:00 | Reportes: se elimina la exportación a Excel (se mantiene copiar tabla); se quitan pandas y xlsxwriter
