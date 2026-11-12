@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Control de Pedidos{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ static('style.css') }}">
+    <!-- Favicon e ícono para dispositivos Apple -->
+    <link rel="icon" type="image/png" href="{{ static('favicon.png') }}">
+    <link rel="apple-touch-icon" href="{{ static('apple-touch-icon.png') }}">
+    <style>
+      body {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+      }
+      .container {
+        flex: 1;
+      }
+      /* Submenú: quita la separación de dropdown en mobile */
+      .navbar .dropdown-menu {
+        min-width: 10rem;
+      }
+    </style>
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+      <div class="container-fluid">
+        <a class="navbar-brand d-flex align-items-center gap-2" href="/">
+          <!-- Ícono del proyecto inline -->
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 680" width="32" height="32" style="flex-shrink:0">
+            <rect x="110" y="110" width="460" height="460" rx="110" fill="#1c1c2e"/>
+            <circle cx="340" cy="350" r="130" fill="none" stroke="#e0e0e0" stroke-width="18"/>
+            <circle cx="340" cy="350" r="92" fill="none" stroke="#e0e0e0" stroke-width="10" opacity="0.35"/>
+            <line x1="162" y1="220" x2="162" y2="278" stroke="#e0e0e0" stroke-width="12" stroke-linecap="round"/>
+            <line x1="175" y1="220" x2="175" y2="278" stroke="#e0e0e0" stroke-width="12" stroke-linecap="round"/>
+            <line x1="188" y1="220" x2="188" y2="278" stroke="#e0e0e0" stroke-width="12" stroke-linecap="round"/>
+            <path d="M162 278 Q175 292 188 278" fill="none" stroke="#e0e0e0" stroke-width="12" stroke-linecap="round"/>
+            <line x1="175" y1="292" x2="175" y2="460" stroke="#e0e0e0" stroke-width="12" stroke-linecap="round"/>
+            <path d="M505 220 Q522 250 514 292 L496 292" fill="none" stroke="#e0e0e0" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+            <line x1="505" y1="292" x2="505" y2="460" stroke="#e0e0e0" stroke-width="12" stroke-linecap="round"/>
+            <polyline points="292,350 326,384 408,300" fill="none" stroke="#f0b429" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          DietServiceControl
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMenu"
+          aria-controls="navbarMenu" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navbarMenu">
+          <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+            <li class="nav-item">
+              <a class="nav-link" href="/dashboard">
+                <i class="bi bi-bar-chart-fill me-2"></i>Resumen
+              </a>
+            </li>
+
+            {# Submenú Semana / Mes #}
+            <li class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle" href="#" id="navVistas" role="button"
+                 data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-calendar-week me-2"></i>Semana
+              </a>
+              <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="navVistas">
+                <li>
+                  <a class="dropdown-item" href="/semana">
+                    <i class="bi bi-calendar-week me-2"></i>Vista semanal
+                  </a>
+                </li>
+                <li>
+                  <a class="dropdown-item" href="/mes">
+                    <i class="bi bi-calendar-month me-2"></i>Vista mensual
+                  </a>
+                </li>
+              </ul>
+            </li>
+
+            <li class="nav-item">
+              <a class="nav-link" href="/pagos">
+                <i class="bi bi-cash-coin me-2"></i>Pagos
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/reporte_ciclo">
+                <i class="bi bi-file-earmark-text me-2"></i>Reportes
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/importar">
+                <i class="bi bi-file-earmark-arrow-up me-2"></i>Importar
+              </a>
+            </li>
+          </ul>
+          {% if request.session.get('autenticado') %}
+          <ul class="navbar-nav ms-auto">
+            <li class="nav-item">
+              <a class="nav-link text-white" href="/logout">
+                <i class="bi bi-box-arrow-right me-1"></i>Salir
+              </a>
+            </li>
+          </ul>
+          {% endif %}
+        </div>
+      </div>
+    </nav>
+
+    <div class="container">
+        {% block content %}{% endblock %}
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
+    <script>
+      // Fuerza el formato DD/MM/AAAA en todos los inputs de fecha, sin
+      // depender del locale del navegador/SO (que a veces muestra MM/DD/AAAA
+      // aunque la página esté en español). El input original sigue
+      // enviando el valor en formato ISO (YYYY-MM-DD) al servidor.
+      document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.flatpickr-date').forEach(function (el) {
+          var esRequerido = el.required;
+          el.required = false; // el input original queda oculto; no debe validarlo el navegador
+          var fp = flatpickr(el, {
+            dateFormat: 'Y-m-d',
+            altInput: true,
+            altFormat: 'd/m/Y',
+            altInputClass: el.className.replace('flatpickr-date', '').trim(),
+            locale: 'es',
+            allowInput: true,
+          });
+          if (esRequerido && fp.altInput) {
+            fp.altInput.required = true; // la validación nativa se hace sobre el campo visible
+          }
+        });
+      });
+    </script>
+    <footer class="bg-dark text-white text-center py-3 mt-5">
+      <div class="container">
+        <small>&copy; 2025 DietServiceControl · Todos los derechos reservados</small>
+      </div>
+    </footer>
+</body>
+{% block scripts %}{% endblock %}
+</html>

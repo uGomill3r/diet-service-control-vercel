@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Iniciar sesión</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+  <!-- Favicon e ícono para dispositivos Apple -->
+  <link rel="icon" type="image/png" href="{{ static('favicon.png') }}">
+  <link rel="apple-touch-icon" href="{{ static('apple-touch-icon.png') }}">
+</head>
+<body class="bg-light">
+  <div class="container py-5">
+    <div class="row justify-content-center">
+      <div class="col-md-5">
+        <!-- Ícono del proyecto centrado sobre el card -->
+        <div class="text-center mb-3">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 680" width="72" height="72">
+            <rect x="110" y="110" width="460" height="460" rx="110" fill="#1c1c2e"/>
+            <circle cx="340" cy="350" r="130" fill="none" stroke="#e0e0e0" stroke-width="18"/>
+            <circle cx="340" cy="350" r="92" fill="none" stroke="#e0e0e0" stroke-width="10" opacity="0.35"/>
+            <line x1="162" y1="220" x2="162" y2="278" stroke="#e0e0e0" stroke-width="12" stroke-linecap="round"/>
+            <line x1="175" y1="220" x2="175" y2="278" stroke="#e0e0e0" stroke-width="12" stroke-linecap="round"/>
+            <line x1="188" y1="220" x2="188" y2="278" stroke="#e0e0e0" stroke-width="12" stroke-linecap="round"/>
+            <path d="M162 278 Q175 292 188 278" fill="none" stroke="#e0e0e0" stroke-width="12" stroke-linecap="round"/>
+            <line x1="175" y1="292" x2="175" y2="460" stroke="#e0e0e0" stroke-width="12" stroke-linecap="round"/>
+            <path d="M505 220 Q522 250 514 292 L496 292" fill="none" stroke="#e0e0e0" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+            <line x1="505" y1="292" x2="505" y2="460" stroke="#e0e0e0" stroke-width="12" stroke-linecap="round"/>
+            <polyline points="292,350 326,384 408,300" fill="none" stroke="#f0b429" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="card shadow-sm">
+          <div class="card-header bg-dark text-white">
+            <i class="bi bi-box-arrow-in-right me-2"></i> Iniciar sesión
+          </div>
+          <div class="card-body">
+            {% for message in messages %}
+              <div class="alert alert-danger">{{ message }}</div>
+            {% endfor %}
+            <form method="POST">
+              {% csrf_token %}
+              <div class="mb-3">
+                <label for="usuario" class="form-label">Usuario</label>
+                <input type="text" class="form-control" id="usuario" name="usuario" required>
+              </div>
+              <div class="mb-3">
+                <label for="clave" class="form-label">Contraseña</label>
+                <input type="password" class="form-control" id="clave" name="clave" required>
+              </div>
+              <button type="submit" class="btn btn-primary w-100">
+                <i class="bi bi-door-open me-2"></i>Ingresar
+              </button>
+            </form>
+            <div class="text-center mt-3">
+              <a href="/recuperar" class="text-muted"><i class="bi bi-key me-1"></i> ¿Olvidaste tu contraseña?</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

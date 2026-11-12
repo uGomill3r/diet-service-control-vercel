@@ -1,0 +1,280 @@
+"""
+Vistas del dashboard principal.
+Migrado desde blueprints/dashboard.py de Flask.
+"""
+import logging
+from datetime import datetime, timedelta
+from django.db.models import Q, Sum
+from django.shortcuts import render, redirect
+from django.urls import reverse
+from apps.core.decorators import protegido
+from apps.core.models import Pedido, Entrega, Pago, CicloPago
+from apps.core.utils import normalizar_fecha, formatear_fecha_con_dia
+
+logger = logging.getLogger(__name__)
+
+
+def index(request):
+    """Raíz del sitio: redirige según estado de sesión."""
+    if not request.session.get("autenticado"):
+        return redirect(reverse("login"))
+    if request.session.get("clave_temporal"):
+        return redirect(reverse("cambiar_clave"))
+    return redirect(reverse("dashboard"))
+
+
+def _ciclo_vigente(tipo, hoy):
+    """
+    Devuelve el ciclo de pago vigente para un tipo ('almuerzo' o 'cena').
+
+    Vigente = fecha_inicio <= hoy y (fecha_fin nula o fecha_fin >= hoy).
+    Si ninguno contiene la fecha de hoy (p. ej. el ciclo ya cerró), usa el
+    último ciclo ya iniciado. Devuelve None si no hay ciclos.
+    """
+    base = CicloPago.objects.filter(tipo=tipo, fecha_inicio__lte=hoy).order_by("-fecha_inicio")
+    ciclo = base.filter(Q(fecha_fin__isnull=True) | Q(fecha_fin__gte=hoy)).first()
+    if ciclo is None:
+        ciclo = base.first()
+        if ciclo is not None:
+            logger.warning(
+                "Ningún ciclo '%s' contiene %s — usando el último (id=%d)",
+                tipo, hoy, ciclo.id,
+            )
+    logger.debug("Ciclo vigente '%s': %s", tipo, ciclo.id if ciclo else None)
+    return ciclo
+
+
+def _fin_efectivo(ciclo):
+    """
+    Devuelve la fecha de fin efectiva del ciclo.
+
+    Si no tiene fecha_fin pero existe un ciclo posterior del mismo tipo, termina
+    el día anterior al inicio de ese ciclo. Sin ciclo posterior, no tiene límite.
+    """
+    if ciclo.fecha_fin:
+        return normalizar_fecha(ciclo.fecha_fin)
+    siguiente = (
+        CicloPago.objects.filter(tipo=ciclo.tipo, fecha_inicio__gt=ciclo.fecha_inicio)
+        .order_by("fecha_inicio")
+        .first()
+    )
+    if siguiente is None:
+        return None
+    fin = normalizar_fecha(siguiente.fecha_inicio) - timedelta(days=1)
+    logger.debug("Ciclo id=%d sin fecha_fin — acotado a %s por ciclo id=%d", ciclo.id, fin, siguiente.id)
+    return fin
+
+
+def _rango_ciclo(ciclo):
+    """Devuelve (inicio, fin) del ciclo; sin ciclo, rango abierto desde la fecha mínima."""
+    if ciclo is None:
+        return datetime.min.date(), None
+    return normalizar_fecha(ciclo.fecha_inicio), _fin_efectivo(ciclo)
+
+
+def _en_rango(fecha, inicio, fin):
+    """True si la fecha está dentro de [inicio, fin] (fin None = sin límite)."""
+    return fecha >= inicio and (fin is None or fecha <= fin)
+
+
+def _pagos_ciclo(tipo, ciclo):
+    """Suma la cantidad pagada asociada al ciclo (por FK, no por fecha del pago)."""
+    if ciclo is None:
+        return Pago.objects.filter(tipo=tipo).aggregate(total=Sum("cantidad"))["total"] or 0
+    return Pago.objects.filter(ciclo=ciclo).aggregate(total=Sum("cantidad"))["total"] or 0
+
+
+def _ciclos_futuros(hoy, pedidos):
+    """
+    Lista los ciclos futuros (fecha_inicio > hoy) que ya tienen días programados.
+
+    `pedidos` es una lista de tuplas (fecha, almuerzo, cena). Si un ciclo futuro
+    no tiene fecha_fin, se acota al día anterior al inicio del siguiente ciclo
+    del mismo tipo. Solo se devuelven ciclos con al menos un día programado.
+    """
+    resultado = []
+    for tipo, idx in (("almuerzo", 1), ("cena", 2)):
+        futuros = list(
+            CicloPago.objects.filter(tipo=tipo, fecha_inicio__gt=hoy).order_by("fecha_inicio")
+        )
+        for i, ciclo in enumerate(futuros):
+            inicio = normalizar_fecha(ciclo.fecha_inicio)
+            if ciclo.fecha_fin:
+                fin = normalizar_fecha(ciclo.fecha_fin)
+            elif i + 1 < len(futuros):
+                fin = normalizar_fecha(futuros[i + 1].fecha_inicio) - timedelta(days=1)
+            else:
+                fin = None
+
+            fechas = sorted(
+                normalizar_fecha(p[0])
+                for p in pedidos
+                if (p[idx] or 0) and _en_rango(normalizar_fecha(p[0]), inicio, fin)
+            )
+            if not fechas:
+                logger.debug("Ciclo futuro id=%d (%s) sin programación", ciclo.id, tipo)
+                continue
+
+            pagados = _pagos_ciclo(tipo, ciclo)
+            resultado.append(
+                {
+                    "tipo": tipo,
+                    "inicio_date": inicio,
+                    "inicio": inicio.strftime("%d-%m-%Y"),
+                    "fin": fin.strftime("%d-%m-%Y") if ciclo.fecha_fin else "—",
+                    "pagados": pagados,
+                    "programados": len(fechas),
+                    "saldo": pagados - len(fechas),
+                    "proximas": [formatear_fecha_con_dia(f) for f in fechas[:5]],
+                }
+            )
+
+    resultado.sort(key=lambda c: c["inicio_date"])
+    logger.info("Ciclos futuros con programación: %d", len(resultado))
+    return resultado
+
+
+@protegido
+def dashboard(request):
+    """Vista principal del resumen de pedidos, entregas y pagos."""
+    logger.info("Cargando dashboard")
+
+    hoy_date = datetime.now().date()
+
+    # Ciclo vigente por tipo (respeta fecha_fin editada manualmente)
+    ciclo_alm = _ciclo_vigente("almuerzo", hoy_date)
+    ciclo_cen = _ciclo_vigente("cena", hoy_date)
+    alm_ini, alm_fin = _rango_ciclo(ciclo_alm)
+    cen_ini, cen_fin = _rango_ciclo(ciclo_cen)
+    logger.debug(
+        "Rangos — almuerzo: %s a %s, cena: %s a %s",
+        alm_ini, alm_fin, cen_ini, cen_fin,
+    )
+
+    # Pagos asociados a cada ciclo vigente
+    pagos_alm = _pagos_ciclo("almuerzo", ciclo_alm)
+    pagos_cen = _pagos_ciclo("cena", ciclo_cen)
+
+    # Todos los pedidos y entregas
+    pedidos_qs = list(Pedido.objects.values_list("fecha", "almuerzo", "cena"))
+    entregas_qs = Entrega.objects.values_list("fecha", "entregado_almuerzo", "entregado_cena")
+    entregas = {normalizar_fecha(row[0]): (row[1] or 0, row[2] or 0) for row in entregas_qs}
+
+    alm_pedidos = alm_entregados = alm_por_entregar = 0
+    cen_pedidos = cen_entregados = cen_por_entregar = 0
+    pedidos_pendientes_raw = []
+    pedidos_por_validar_raw = []
+
+    for fecha_iso, a_pedido, c_pedido in pedidos_qs:
+        fecha_date = normalizar_fecha(fecha_iso)
+        a_entregado, c_entregado = entregas.get(fecha_date, (0, 0))
+        a_pedido = a_pedido or 0
+        c_pedido = c_pedido or 0
+
+        if _en_rango(fecha_date, alm_ini, alm_fin):
+            alm_pedidos += a_pedido
+            alm_entregados += a_entregado
+            if a_pedido and not a_entregado and fecha_date >= hoy_date:
+                alm_por_entregar += 1
+
+        if _en_rango(fecha_date, cen_ini, cen_fin):
+            cen_pedidos += c_pedido
+            cen_entregados += c_entregado
+            if c_pedido and not c_entregado and fecha_date >= hoy_date:
+                cen_por_entregar += 1
+
+        errores = []
+        if a_pedido and not a_entregado:
+            errores.append("almuerzo")
+        if c_pedido and not c_entregado:
+            errores.append("cena")
+        if errores:
+            if fecha_date >= hoy_date:
+                pedidos_pendientes_raw.append((fecha_date, errores))
+            else:
+                pedidos_por_validar_raw.append((fecha_date, errores))
+
+    # Formatear listas de pendientes
+    pedidos_pendientes = [
+        (f.strftime("%d-%m-%Y"), formatear_fecha_con_dia(f), e)
+        for f, e in sorted(pedidos_pendientes_raw, key=lambda x: x[0])[:5]
+    ]
+    pedidos_por_validar = [
+        (f.strftime("%d-%m-%Y"), formatear_fecha_con_dia(f), e)
+        for f, e in sorted(pedidos_por_validar_raw, key=lambda x: x[0])[:5]
+    ]
+
+    ciclos_futuros = _ciclos_futuros(hoy_date, pedidos_qs)
+
+    alm_saldo = pagos_alm - alm_entregados - alm_por_entregar
+    cen_saldo = pagos_cen - cen_entregados - cen_por_entregar
+
+    # Fecha de inicio del ciclo vigente por tipo (reemplaza al "último pago")
+    fecha_ciclo_almuerzo = alm_ini.strftime("%d-%m-%Y") if ciclo_alm else "—"
+    fecha_ciclo_cena = cen_ini.strftime("%d-%m-%Y") if ciclo_cen else "—"
+    # Compatibilidad con el template actual: texto combinado en una sola variable
+    fecha_ultimo_pago = f"Almuerzo {fecha_ciclo_almuerzo} · Cena {fecha_ciclo_cena}"
+    logger.info(
+        "Dashboard cargado — alm saldo: %d, cen saldo: %d, pendientes: %d",
+        alm_saldo, cen_saldo, len(pedidos_pendientes_raw),
+    )
+
+    return render(
+        request,
+        "dashboard.html",
+        {
+            "alm_pagados": pagos_alm,
+            "cen_pagados": pagos_cen,
+            "alm_pedidos": alm_pedidos,
+            "cen_pedidos": cen_pedidos,
+            "alm_entregados": alm_entregados,
+            "cen_entregados": cen_entregados,
+            "alm_por_entregar": alm_por_entregar,
+            "cen_por_entregar": cen_por_entregar,
+            "alm_saldo": alm_saldo,
+            "cen_saldo": cen_saldo,
+            "fecha_ultimo_pago": fecha_ultimo_pago,
+            "ciclos_futuros": ciclos_futuros,
+            "fecha_ciclo_almuerzo": fecha_ciclo_almuerzo,
+            "fecha_ciclo_cena": fecha_ciclo_cena,
+            "pedidos_pendientes": pedidos_pendientes,
+            "pedidos_por_validar": pedidos_por_validar,
+        },
+    )
+
+
+@protegido
+def pedidos_siguientes(request):
+    """Lista completa de pedidos futuros aún no entregados."""
+    logger.info("Cargando pedidos siguientes")
+
+    pedidos_qs = Pedido.objects.values_list("fecha", "almuerzo", "cena")
+    entregas_qs = Entrega.objects.values_list("fecha", "entregado_almuerzo", "entregado_cena")
+    entregas = {normalizar_fecha(row[0]): (row[1] or 0, row[2] or 0) for row in entregas_qs}
+
+    hoy_date = datetime.now().date()
+    pedidos = []
+
+    for fecha_iso, a_pedido, c_pedido in pedidos_qs:
+        fecha_date = normalizar_fecha(fecha_iso)
+        a_entregado, c_entregado = entregas.get(fecha_date, (0, 0))
+        a_pedido = a_pedido or 0
+        c_pedido = c_pedido or 0
+
+        errores_almuerzo = bool(a_pedido and not a_entregado and fecha_date >= hoy_date)
+        errores_cena = bool(c_pedido and not c_entregado and fecha_date >= hoy_date)
+
+        if errores_almuerzo or errores_cena:
+            pedidos.append(
+                {
+                    "fecha_raw": fecha_date.strftime("%d-%m-%Y"),
+                    "fecha_fmt": formatear_fecha_con_dia(fecha_date),
+                    "almuerzo": errores_almuerzo,
+                    "cena": errores_cena,
+                }
+            )
+
+    pedidos.sort(key=lambda p: datetime.strptime(p["fecha_raw"], "%d-%m-%Y"))
+    logger.info("Pedidos siguientes encontrados: %d", len(pedidos))
+
+    return render(request, "pedidos_siguientes.html", {"pedidos": pedidos})
