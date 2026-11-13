@@ -1,0 +1,52 @@
+{# Botón de entrega: envía el valor explícito contrario al actual (no es un toggle ciego). #}
+{% macro boton_entrega(iso, tipo, entregado, titulo) %}
+<button id="btn-{{ iso }}-{{ tipo }}" type="button"
+  class="btn btn-entrega {{ 'btn-success' if entregado else 'btn-outline-secondary' }}"
+  hx-post="{{ url_for('validacion.marcar_entrega') }}"
+  hx-vals='{"fecha": "{{ iso }}", "tipo": "{{ tipo }}", "valor": {{ 0 if entregado else 1 }}}'
+  hx-target="this" hx-swap="outerHTML" hx-disabled-elt="this"
+  aria-pressed="{{ 'true' if entregado else 'false' }}">
+  <i class="bi {{ 'bi-check-circle-fill' if entregado else 'bi-circle' }} me-2"></i>{{ titulo }}
+</button>
+{% endmacro %}
+
+{% macro tarjeta(d) %}
+<div class="card shadow-sm mb-3 {{ 'border-primary' if d.es_hoy }}">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <strong>{{ d.etiqueta }}</strong>
+      <span>
+        {% if d.es_hoy %}<span class="badge bg-primary">Hoy</span>{% endif %}
+        <button type="button" class="btn btn-link btn-sm p-1" aria-label="Observación de entrega"
+          hx-get="{{ url_for('validacion.obs_entrega') }}?fecha={{ d.iso }}"
+          hx-target="#modal-contenido" hx-swap="innerHTML">
+          <i class="bi {{ 'bi-chat-left-text-fill' if d.observaciones else 'bi-chat-left-text' }}"></i>
+        </button>
+      </span>
+    </div>
+    {% for tipo, titulo in (("almuerzo", "Almuerzo"), ("cena", "Cena")) %}
+      {% set x = d[tipo] %}
+      {% if x.aplica %}
+      <div class="mb-3">
+        {{ boton_entrega(d.iso, tipo, x.entregado, titulo) }}
+        <div class="small mt-2 ps-1">
+          {% if tipo == "almuerzo" %}
+          <div class="mb-1">
+            <span class="badge text-bg-secondary text-uppercase me-1" style="font-size:.6rem">Entrada</span>{{ x.entrada or "Sin registrar" }}
+          </div>
+          <div>
+            <span class="badge text-bg-secondary text-uppercase me-1" style="font-size:.6rem">Fondo</span>{{ x.fondo or "Sin registrar" }}
+          </div>
+          {% else %}
+          <div>{{ x.plato or "Sin registrar" }}</div>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+    {% endfor %}
+    {% if d.observaciones %}
+    <div class="small text-muted"><i class="bi bi-chat-left-text me-1"></i>{{ d.observaciones }}</div>
+    {% endif %}
+  </div>
+</div>
+{% endmacro %}

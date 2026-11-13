@@ -1,0 +1,20 @@
+<tr class="table-active">
+  <td colspan="4" class="text-start">
+    <form class="row g-2 align-items-end" hx-post="/pagos/ciclo/editar/{{ ciclo_id }}"
+      hx-target="#pagos-listas" hx-swap="innerHTML" hx-disabled-elt="find button[type=submit]">
+      <div class="col-6 col-md-4">
+        <label class="form-label small mb-0">Inicio ({{ ciclo.tipo }})</label>
+        <input type="text" name="fecha_inicio" class="form-control flatpickr-date" value="{{ ciclo.fecha_inicio }}" required>
+      </div>
+      <div class="col-6 col-md-4">
+        <label class="form-label small mb-0">Fin (vacío = abierto)</label>
+        <input type="text" name="fecha_fin" class="form-control flatpickr-date" value="{{ ciclo.fecha_fin or '' }}">
+      </div>
+      <div class="col-12 col-md-4 text-end">
+        <button type="button" class="btn btn-secondary"
+          hx-get="/pagos" hx-target="#pagos-listas" hx-swap="innerHTML">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Guardar</button>
+      </div>
+    </form>
+  </td>
+</tr>

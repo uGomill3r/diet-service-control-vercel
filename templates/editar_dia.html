@@ -89,17 +89,17 @@
           <div id="bloqueAlmuerzo">
             <div class="mb-3">
               <label for="entrada" class="form-label fw-semibold text-primary border-start border-3 border-primary ps-3">Entrada</label>
-              <textarea class="form-control auto-resize {% if modo_lectura %}bg-light border-0{% endif %}" name="entrada" id="entrada" rows="1" list="entrada_sugerencias" {% if modo_lectura %}disabled{% endif %}>{{ entrada }}</textarea>
+              <textarea class="form-control auto-resize {% if modo_lectura %}bg-light border-0{% endif %}" name="entrada" id="entrada" rows="1" {% if modo_lectura %}disabled{% endif %}>{{ entrada }}</textarea>
             </div>
             <div class="mb-3">
               <label for="fondo" class="form-label fw-semibold text-primary border-start border-3 border-primary ps-3">Fondo</label>
-              <textarea class="form-control auto-resize {% if modo_lectura %}bg-light border-0{% endif %}" name="fondo" id="fondo" rows="1" list="fondo_sugerencias" {% if modo_lectura %}disabled{% endif %}>{{ fondo }}</textarea>
+              <textarea class="form-control auto-resize {% if modo_lectura %}bg-light border-0{% endif %}" name="fondo" id="fondo" rows="1" {% if modo_lectura %}disabled{% endif %}>{{ fondo }}</textarea>
             </div>
           </div>
           <div id="bloqueCena">
             <div class="mb-3">
               <label for="plato_cena" class="form-label fw-semibold text-primary border-start border-3 border-primary ps-3">Cena</label>
-              <textarea class="form-control auto-resize {% if modo_lectura %}bg-light border-0{% endif %}" name="plato_cena" id="plato_cena" rows="1" list="plato_cena_sugerencias" {% if modo_lectura %}disabled{% endif %}>{{ plato_cena }}</textarea>
+              <textarea class="form-control auto-resize {% if modo_lectura %}bg-light border-0{% endif %}" name="plato_cena" id="plato_cena" rows="1" {% if modo_lectura %}disabled{% endif %}>{{ plato_cena }}</textarea>
             </div>
           </div>
           {% if not modo_lectura or obs_pedido %}
@@ -154,9 +154,6 @@
     <a href="/ver_dia?fecha={{ fecha_sig }}" class="btn btn-outline-secondary">Día siguiente →</a>
   </div>
 
-  <datalist id="entrada_sugerencias"></datalist>
-  <datalist id="fondo_sugerencias"></datalist>
-  <datalist id="plato_cena_sugerencias"></datalist>
 </form>
 {% endblock %}
 
@@ -220,33 +217,6 @@ document.addEventListener('DOMContentLoaded', function () {
   }
   feriadoSwitch.addEventListener('change', actualizarBloqueo);
   actualizarBloqueo();
-});
-</script>
-<script>
-function activarAutocompletado(idCampo) {
-  const campo = document.getElementById(idCampo);
-  if (!campo) return;
-  campo.addEventListener('input', function () {
-    const texto = campo.value;
-    if (texto.length < 2) return;
-    fetch(`/sugerencias_plato?q=${encodeURIComponent(texto)}`)
-      .then(res => res.json())
-      .then(sugerencias => {
-        const datalistId = idCampo + "_sugerencias";
-        let datalist = document.getElementById(datalistId);
-        datalist.innerHTML = '';
-        sugerencias.forEach(plato => {
-          const option = document.createElement('option');
-          option.value = plato;
-          datalist.appendChild(option);
-        });
-      });
-  });
-}
-document.addEventListener('DOMContentLoaded', function () {
-  activarAutocompletado('entrada');
-  activarAutocompletado('fondo');
-  activarAutocompletado('plato_cena');
 });
 </script>
 <script>

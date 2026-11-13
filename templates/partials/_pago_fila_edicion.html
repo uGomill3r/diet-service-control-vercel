@@ -1,0 +1,40 @@
+<tr class="table-active">
+  <td colspan="6" class="text-start">
+    <form class="row g-2 align-items-end" hx-post="/pagos/editar/{{ pago_id }}"
+      hx-target="#pagos-listas" hx-swap="innerHTML" hx-disabled-elt="find button[type=submit]">
+      <div class="col-6 col-md-2">
+        <label class="form-label small mb-0">Fecha</label>
+        <input type="text" name="fecha" class="form-control flatpickr-date" value="{{ pago[0] }}" required>
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="form-label small mb-0">Tipo</label>
+        <select name="tipo" class="form-select" required>
+          <option value="almuerzo" {{ 'selected' if pago[1] == 'almuerzo' }}>Almuerzo</option>
+          <option value="cena" {{ 'selected' if pago[1] == 'cena' }}>Cena</option>
+        </select>
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="form-label small mb-0">Cantidad</label>
+        <input type="number" name="cantidad" class="form-control" value="{{ pago[3] }}" min="1" required>
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="form-label small mb-0">Monto</label>
+        <input type="number" name="monto" class="form-control" value="{{ pago[2] }}" step="0.01" min="0" required>
+      </div>
+      <div class="col-12 col-md-4">
+        <label class="form-label small mb-0">Ciclo asociado</label>
+        <select name="ciclo_id" class="form-select">
+          <option value="" {{ 'selected' if not pago[4] }}>-- Pendiente (sin ciclo) --</option>
+          {% for cid, etiqueta in ciclos %}
+          <option value="{{ cid }}" {{ 'selected' if pago[4] == cid }}>{{ etiqueta }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-12 text-end">
+        <button type="button" class="btn btn-secondary"
+          hx-get="/pagos" hx-target="#pagos-listas" hx-swap="innerHTML">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Guardar</button>
+      </div>
+    </form>
+  </td>
+</tr>

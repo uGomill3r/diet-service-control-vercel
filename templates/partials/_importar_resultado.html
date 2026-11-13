@@ -1,0 +1,16 @@
+{% if guardados %}
+<div class="alert alert-success">
+  <i class="bi bi-check-circle-fill me-2"></i>Importación completada: {{ guardados }} día(s) guardado(s) correctamente.
+  {% if errores %}<br>{{ errores }} error(es); revise el log de la función.{% endif %}
+</div>
+{% else %}
+<div class="alert alert-danger">
+  <i class="bi bi-x-circle-fill me-2"></i>No se guardó ningún día. Revisa los datos e intenta nuevamente.
+</div>
+{% endif %}
+<div class="d-flex flex-wrap gap-2">
+  <a href="/calendario" class="btn btn-primary">Ver calendario</a>
+  <a href="/hoy" class="btn btn-outline-secondary">Ir a Hoy</a>
+  <a href="/importar" class="btn btn-outline-secondary"
+    hx-get="/importar" hx-target="#importar-contenido" hx-swap="innerHTML">Importar otro archivo</a>
+</div>

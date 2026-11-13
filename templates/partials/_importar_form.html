@@ -1,0 +1,26 @@
+{% if error %}
+<div class="alert alert-danger">{{ error }}</div>
+{% endif %}
+
+<div class="card shadow-sm" style="max-width: 560px;">
+  <div class="card-header bg-primary text-white">
+    <i class="bi bi-envelope-arrow-up me-2"></i>Subir archivo .eml
+  </div>
+  <div class="card-body">
+    <form method="POST" action="/importar" enctype="multipart/form-data"
+      hx-post="/importar" hx-encoding="multipart/form-data"
+      hx-target="#importar-contenido" hx-swap="innerHTML" hx-disabled-elt="find button[type=submit]">
+      {% csrf_token %}
+      <div class="mb-3">
+        <label for="archivo_eml" class="form-label fw-semibold">Correo de confirmación de pedido de menú</label>
+        <input type="file" class="form-control" id="archivo_eml" name="archivo_eml" accept=".eml" required>
+        <div class="form-text">
+          En Gmail: abre el correo → menú ⋮ → <strong>Descargar mensaje</strong> → guarda el <code>.eml</code>.
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary w-100">
+        <i class="bi bi-search me-2"></i>Analizar archivo
+      </button>
+    </form>
+  </div>
+</div>

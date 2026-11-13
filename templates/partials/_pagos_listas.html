@@ -1,0 +1,69 @@
+{% if aviso %}
+<div class="alert alert-warning alert-dismissible fade show" role="alert">
+  <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ aviso }}
+  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+
+<h3 class="mt-4">Pagos registrados</h3>
+<div class="table-responsive">
+  <table class="table table-bordered align-middle text-center">
+    <thead class="table-dark">
+      <tr><th>Fecha</th><th>Tipo</th><th>Cantidad</th><th>Monto</th><th>Ciclo desde</th><th>Acciones</th></tr>
+    </thead>
+    <tbody>
+      {% for p in pagos %}
+      <tr>
+        <td>{{ p.fecha }}</td>
+        <td><span class="badge {{ 'bg-success' if p.tipo == 'almuerzo' else 'bg-primary' }}">{{ p.tipo | capitalize }}</span></td>
+        <td>{{ p.cantidad }}</td>
+        <td><span class="badge bg-secondary">{{ p.monto }}</span></td>
+        <td>
+          {% if p.ciclo %}<span class="badge bg-dark">{{ p.ciclo }}</span>
+          {% else %}<span class="badge bg-warning text-dark">Pendiente</span>{% endif %}
+        </td>
+        <td>
+          <button type="button" class="btn btn-sm btn-outline-secondary"
+            hx-get="/pagos/editar/{{ p.id }}" hx-target="closest tr" hx-swap="outerHTML">Editar</button>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6">No hay pagos registrados aún.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<h4 class="mt-4">Total pagado (monto)</h4>
+<ul class="list-group mb-4" style="max-width: 420px;">
+  <li class="list-group-item d-flex justify-content-between">
+    <span>Almuerzos</span><span class="badge bg-success">{{ totales.get('almuerzo', 0) }}</span>
+  </li>
+  <li class="list-group-item d-flex justify-content-between">
+    <span>Cenas</span><span class="badge bg-primary">{{ totales.get('cena', 0) }}</span>
+  </li>
+</ul>
+
+<h3 class="mt-5">Ciclos de pago</h3>
+<div class="table-responsive mb-4">
+  <table class="table table-bordered align-middle text-center">
+    <thead class="table-dark">
+      <tr><th>Tipo</th><th>Inicio</th><th>Fin</th><th>Acciones</th></tr>
+    </thead>
+    <tbody>
+      {% for c in ciclos %}
+      <tr>
+        <td><span class="badge {{ 'bg-success' if c.tipo == 'almuerzo' else 'bg-primary' }}">{{ c.tipo | capitalize }}</span></td>
+        <td>{{ c.inicio }}</td>
+        <td>{% if c.fin %}{{ c.fin }}{% else %}<span class="badge bg-warning text-dark">Abierto</span>{% endif %}</td>
+        <td>
+          <button type="button" class="btn btn-sm btn-outline-secondary"
+            hx-get="/pagos/ciclo/editar/{{ c.id }}" hx-target="closest tr" hx-swap="outerHTML">Editar fechas</button>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="4">No hay ciclos de pago registrados aún.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>

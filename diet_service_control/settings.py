@@ -61,13 +61,13 @@ INSTALLED_APPS = [
     "apps.core",
     "apps.auth_app",
     "apps.dashboard",
-    "apps.mes",
-    "apps.semana",
     "apps.dia",
     "apps.pagos",
     "apps.reportes",
     "apps.log",
     "apps.importar",
+    "apps.validacion",
+    "apps.calendario",
 ]
 
 # Messages backend para sesiones sin django.contrib.auth completo

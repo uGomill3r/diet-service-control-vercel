@@ -1,0 +1,8 @@
+<div id="barra-hoy" class="barra-hoy" {% if oob %}hx-swap-oob="true"{% endif %}>
+  <div class="d-flex justify-content-around text-center small">
+    <div>Pend. alm. <span class="badge bg-warning text-dark">{{ pend_alm }}</span></div>
+    <div>Pend. cena <span class="badge bg-warning text-dark">{{ pend_cen }}</span></div>
+    <div>Saldo alm. <span class="badge {{ 'bg-danger' if saldo_alm < 0 else 'bg-success' }}">{{ saldo_alm }}</span></div>
+    <div>Saldo cena <span class="badge {{ 'bg-danger' if saldo_cen < 0 else 'bg-success' }}">{{ saldo_cen }}</span></div>
+  </div>
+</div>

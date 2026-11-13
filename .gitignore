@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+dist/
+build/
+
+# Entorno virtual
+venv/
+env/
+.venv/
+
+# Django
+staticfiles/
+media/
+*.log
+db.sqlite3
+db.sqlite3.*.bak
+
+# Variables de entorno
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*~
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Datos
+data/
+backups/
+logs/
+
+# Docker
+docker-compose.override.yml
+
+# Atajos locales
+Makefile
+
+# Contexto para agentes (solo local, no va al repo)
+CLAUDE.md, AGENTS.md
+
+# Config local de agentes (skills, etc.): no va al repo
+.claude/

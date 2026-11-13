@@ -19,11 +19,11 @@ urlpatterns = [
     path("favicon.ico", _serve_touch_icon),
     path("", include("apps.auth_app.urls")),
     path("", include("apps.dashboard.urls")),
-    path("", include("apps.mes.urls")),
-    path("", include("apps.semana.urls")),
     path("", include("apps.dia.urls")),
     path("", include("apps.pagos.urls")),
     path("", include("apps.reportes.urls")),
     path("", include("apps.log.urls")),
     path("", include("apps.importar.urls")),
+    path("", include("apps.validacion.urls")),
+    path("", include("apps.calendario.urls")),
 ]

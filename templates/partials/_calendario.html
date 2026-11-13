@@ -1,0 +1,85 @@
+{# Refresca el calendario cuando se guarda un día desde el modal #}
+<div hx-get="{{ url_actual }}" hx-trigger="calendarioActualizado from:body"
+     hx-target="#cal" hx-swap="innerHTML" hidden></div>
+
+{% set base = url_for('calendario.calendario') %}
+<div class="d-flex justify-content-between align-items-center mb-2 gap-2">
+  <button type="button" class="btn btn-outline-secondary" aria-label="Anterior"
+    hx-get="{{ base }}?vista={{ vista }}&fecha={{ anterior }}" hx-target="#cal" hx-swap="innerHTML" hx-push-url="true">
+    <i class="bi bi-chevron-left"></i>
+  </button>
+  <strong class="text-center">{{ titulo }}</strong>
+  <button type="button" class="btn btn-outline-secondary" aria-label="Siguiente"
+    hx-get="{{ base }}?vista={{ vista }}&fecha={{ siguiente }}" hx-target="#cal" hx-swap="innerHTML" hx-push-url="true">
+    <i class="bi bi-chevron-right"></i>
+  </button>
+</div>
+
+<div class="btn-group w-100 mb-3" role="group" aria-label="Tipo de vista">
+  <button type="button" class="btn {{ 'btn-dark' if vista == 'semana' else 'btn-outline-dark' }}"
+    hx-get="{{ base }}?vista=semana&fecha={{ ancla }}" hx-target="#cal" hx-swap="innerHTML" hx-push-url="true">Semana</button>
+  <button type="button" class="btn {{ 'btn-dark' if vista == 'mes' else 'btn-outline-dark' }}"
+    hx-get="{{ base }}?vista=mes&fecha={{ ancla }}" hx-target="#cal" hx-swap="innerHTML" hx-push-url="true">Mes</button>
+</div>
+
+{% set modal = url_for('calendario.modal_dia') %}
+{% if vista == 'semana' %}
+<div class="list-group shadow-sm">
+  {% for d in dias %}
+  <button type="button" class="list-group-item list-group-item-action py-3 {{ 'border-primary border-2' if d.es_hoy }}"
+    hx-get="{{ modal }}?fecha={{ d.iso }}" hx-target="#modal-contenido" hx-swap="innerHTML">
+    <div class="d-flex justify-content-between align-items-center">
+      <div>
+        <strong>{{ d.nombre }} {{ d.fecha_corta }}</strong>
+        {% if d.ciclo_inicio %}<i class="bi bi-flag-fill text-primary ms-1" title="Inicio de ciclo"></i>{% endif %}
+        <div class="small text-muted">{{ d.texto }}</div>
+      </div>
+      <div class="cal-cell">
+        {% if d.feriado %}
+          <span class="badge text-bg-info">Feriado</span>
+        {% else %}
+          <span class="badge text-bg-{{ d.estado.almuerzo }}">A</span>
+          <span class="badge text-bg-{{ d.estado.cena }}">C</span>
+        {% endif %}
+      </div>
+    </div>
+  </button>
+  {% endfor %}
+</div>
+{% else %}
+<div class="table-responsive">
+  <table class="table table-bordered table-sm align-middle text-center mb-0 bg-white">
+    <thead class="table-dark"><tr>{% for c in cabecera %}<th>{{ c }}</th>{% endfor %}</tr></thead>
+    <tbody>
+      {% for fila in semanas %}
+      <tr>
+        {% for d in fila %}
+        <td class="p-0 cal-cell">
+          {% if d %}
+          <button type="button" class="btn btn-sm w-100 py-2 {{ 'border border-primary border-2' if d.es_hoy }}"
+            hx-get="{{ modal }}?fecha={{ d.iso }}" hx-target="#modal-contenido" hx-swap="innerHTML">
+            <div class="fw-bold">{{ d.numero }}{% if d.ciclo_inicio %}<i class="bi bi-flag-fill text-primary ms-1"></i>{% endif %}</div>
+            {% if d.feriado %}
+              <span class="badge text-bg-info">F</span>
+            {% else %}
+              <span class="badge text-bg-{{ d.estado.almuerzo }}">A</span>
+              <span class="badge text-bg-{{ d.estado.cena }}">C</span>
+            {% endif %}
+          </button>
+          {% endif %}
+        </td>
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+<div class="small text-muted mt-3">
+  <span class="badge text-bg-success">A</span> entregado ·
+  <span class="badge text-bg-warning">A</span> pendiente ·
+  <span class="badge text-bg-danger">A</span> no entregado ·
+  <span class="badge text-bg-light border">A</span> sin pedido ·
+  A = almuerzo, C = cena · <i class="bi bi-flag-fill text-primary"></i> inicio de ciclo
+</div>

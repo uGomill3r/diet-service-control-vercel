@@ -6,10 +6,8 @@ import logging
 from datetime import datetime, timedelta
 from django.shortcuts import render, redirect
 from django.urls import reverse
-from django.http import JsonResponse
 from apps.core.decorators import protegido
 from apps.core.models import Pedido, Entrega
-from apps.core.utils import normalizar_fecha, buscar_platos_similares
 
 logger = logging.getLogger(__name__)
 
@@ -161,20 +159,3 @@ def editar_dia(request):
     contexto["solo_lectura"] = False
     return render(request, "editar_dia.html", contexto)
 
-
-@protegido
-def sugerencias_plato(request):
-    """API JSON para autocompletado de nombres de platos."""
-    termino = request.GET.get("q", "")
-    if not termino:
-        return JsonResponse([], safe=False)
-
-    resultados = buscar_platos_similares(termino)
-    platos = set()
-    for entrada, fondo, cena in resultados:
-        for plato in [entrada, fondo, cena]:
-            if plato and termino.lower() in plato.lower():
-                platos.add(plato)
-
-    logger.debug("Sugerencias para '%s': %d resultados", termino, len(platos))
-    return JsonResponse(sorted(platos), safe=False)

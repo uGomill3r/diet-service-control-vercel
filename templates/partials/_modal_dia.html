@@ -1,0 +1,48 @@
+<form hx-post="{{ url_for('calendario.guardar_dia') }}" hx-swap="none">
+  <input type="hidden" name="fecha" value="{{ iso }}">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="mb-0">{{ etiqueta }}</h5>
+    <button type="button" class="btn-close" aria-label="Cerrar" onclick="cerrarModal()"></button>
+  </div>
+
+  <div class="mb-2">
+    {% if ent_almuerzo %}<span class="badge text-bg-success">Almuerzo entregado</span>{% endif %}
+    {% if ent_cena %}<span class="badge text-bg-success">Cena entregada</span>{% endif %}
+    <span class="small text-muted">La entrega se valida en la pantalla Hoy.</span>
+  </div>
+
+  <div class="form-check form-switch mb-2">
+    <input class="form-check-input" type="checkbox" name="feriado" id="m-feriado" {% if feriado %}checked{% endif %}>
+    <label class="form-check-label fw-bold text-info" for="m-feriado">Feriado</label>
+  </div>
+  <div class="form-check form-switch">
+    <input class="form-check-input" type="checkbox" name="almuerzo" id="m-almuerzo" {% if almuerzo %}checked{% endif %}>
+    <label class="form-check-label fw-bold" for="m-almuerzo">Almuerzo</label>
+  </div>
+  <div class="form-check form-switch mb-3">
+    <input class="form-check-input" type="checkbox" name="cena" id="m-cena" {% if cena %}checked{% endif %}>
+    <label class="form-check-label fw-bold" for="m-cena">Cena</label>
+  </div>
+
+  <div class="mb-2">
+    <label class="form-label small fw-semibold" for="m-entrada">Entrada</label>
+    <textarea class="form-control" name="entrada" id="m-entrada" rows="1">{{ entrada }}</textarea>
+  </div>
+  <div class="mb-2">
+    <label class="form-label small fw-semibold" for="m-fondo">Fondo</label>
+    <textarea class="form-control" name="fondo" id="m-fondo" rows="1">{{ fondo }}</textarea>
+  </div>
+  <div class="mb-2">
+    <label class="form-label small fw-semibold" for="m-cena-plato">Cena (plato)</label>
+    <textarea class="form-control" name="plato_cena" id="m-cena-plato" rows="1">{{ plato_cena }}</textarea>
+  </div>
+  <div class="mb-3">
+    <label class="form-label small fw-semibold" for="m-obs">Observación del pedido</label>
+    <textarea class="form-control" name="obs_pedido" id="m-obs" rows="2">{{ obs_pedido }}</textarea>
+  </div>
+
+  <div class="d-flex justify-content-between align-items-center gap-2">
+    <a class="small" href="/editar_dia?fecha={{ fecha_ddmmaaaa }}">Edición completa</a>
+    <button type="submit" class="btn btn-primary" hx-disabled-elt="this">Guardar</button>
+  </div>
+</form>

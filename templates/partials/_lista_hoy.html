@@ -1,0 +1,30 @@
+{% from "partials/_macros_validacion.html" import tarjeta %}
+{% if dia_hoy %}
+  {{ tarjeta(dia_hoy) }}
+{% else %}
+  <div class="alert alert-light border">Sin pedido para hoy.</div>
+{% endif %}
+
+{% if pendientes %}
+<div class="d-flex justify-content-between align-items-center mb-2">
+  <h5 class="mb-0">Pendientes de validar</h5>
+  {% if hay_masivo %}
+  <button type="button" class="btn btn-sm btn-outline-success"
+    hx-post="{{ url_for('validacion.validar_hasta_ayer') }}"
+    hx-target="#lista-hoy" hx-swap="innerHTML" hx-disabled-elt="this"
+    hx-confirm="¿Marcar como entregados todos los pedidos hasta ayer? Se excluyen los días con observaciones.">
+    Marcar todo hasta ayer
+  </button>
+  {% endif %}
+</div>
+{% for d in pendientes %}{{ tarjeta(d) }}{% endfor %}
+{% else %}
+<div class="alert alert-success">No hay días anteriores pendientes.</div>
+{% endif %}
+
+{% if validados %}
+<details class="mb-4">
+  <summary class="mb-2 text-muted">Validados recientes</summary>
+  {% for d in validados %}{{ tarjeta(d) }}{% endfor %}
+</details>
+{% endif %}

@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Hoy{% endblock %}
+{% block content %}
+{% include "partials/_barra_hoy.html" %}
+<h2 class="h4 mb-3">{{ hoy_etiqueta }}</h2>
+<div id="lista-hoy" hx-get="{{ url_for('validacion.hoy') }}" hx-trigger="hoyActualizado from:body" hx-swap="innerHTML">
+  {% include "partials/_lista_hoy.html" %}
+</div>
+{% endblock %}

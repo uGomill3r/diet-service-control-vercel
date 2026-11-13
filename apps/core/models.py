@@ -55,6 +55,9 @@ class Entrega(models.Model):
 
     class Meta:
         db_table = "entregas"
+        constraints = [
+            models.UniqueConstraint(fields=["fecha"], name="entregas_fecha_unica"),
+        ]
 
     def __str__(self):
         return f"<Entrega {self.fecha} | Almuerzo: {self.entregado_almuerzo}, Cena: {self.entregado_cena}>"

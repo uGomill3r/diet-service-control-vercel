@@ -13,6 +13,7 @@ from jinja2 import Environment, nodes
 from jinja2.ext import Extension
 from django.urls import reverse
 from django.templatetags.static import static
+from django.middleware.csrf import get_token
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +37,11 @@ class CsrfExtension(Extension):
         return Markup(f'<input type="hidden" name="csrfmiddlewaretoken" value="{token}">')
 
 
+def csrf_value(request):
+    """Devuelve solo el valor del token CSRF (para hx-headers de HTMX)."""
+    return get_token(request)
+
+
 def environment(**options):
     """Configura el entorno Jinja2 con las utilidades necesarias."""
     logger.debug("Inicializando entorno Jinja2 personalizado")
@@ -46,6 +52,7 @@ def environment(**options):
         {
             "url_for": url_for_django,
             "static": static,
+            "csrf_value": csrf_value,
         }
     )
     return env
@@ -62,15 +69,19 @@ def url_for_django(endpoint, **kwargs):
         "auth.recuperar": "recuperar",
         "auth.cambiar_clave": "cambiar_clave",
         "dashboard.dashboard": "dashboard",
-        "dashboard.pedidos_siguientes": "pedidos_siguientes",
         "dia.ver_dia": "ver_dia",
         "dia.editar_dia": "editar_dia",
-        "dia.sugerencias_plato": "sugerencias_plato",
-        "semana.vista_semanal": "semana",
         "pagos.pagos": "pagos",
         "pagos.editar_pago": "editar_pago",
         "reportes.reporte_ciclo": "reporte_ciclo",
         "log.log": "log",
+        "validacion.hoy": "hoy",
+        "validacion.obs_entrega": "obs_entrega",
+        "calendario.calendario": "calendario",
+        "calendario.modal_dia": "modal_dia",
+        "calendario.guardar_dia": "guardar_dia",
+        "validacion.marcar_entrega": "marcar_entrega",
+        "validacion.validar_hasta_ayer": "validar_hasta_ayer",
         "static": "static",
     }
 

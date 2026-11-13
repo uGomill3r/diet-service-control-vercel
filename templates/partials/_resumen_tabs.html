@@ -1,0 +1,69 @@
+{% set base = url_for('dashboard.dashboard') %}
+<ul class="nav nav-tabs mb-3">
+  <li class="nav-item">
+    <button type="button" class="nav-link {{ 'active' if tab == 'vigente' }}"
+      hx-get="{{ base }}?tab=vigente" hx-target="#resumen-panel" hx-swap="innerHTML">Ciclo vigente</button>
+  </li>
+  <li class="nav-item">
+    <button type="button" class="nav-link {{ 'active' if tab == 'futuros' }}"
+      hx-get="{{ base }}?tab=futuros" hx-target="#resumen-panel" hx-swap="innerHTML">
+      Ciclos futuros
+      {% if ciclos_futuros %}<span class="badge bg-secondary">{{ ciclos_futuros | length }}</span>{% endif %}
+    </button>
+  </li>
+</ul>
+
+{% if tab == 'futuros' %}
+  {% if ciclos_futuros %}
+  <div class="table-responsive">
+    <table class="table table-bordered align-middle text-center">
+      <thead class="table-dark">
+        <tr><th>Ítem</th><th>Ciclo desde</th><th>Hasta</th><th>Pagados</th><th>Programados</th><th>Saldo</th><th>Próximas fechas</th></tr>
+      </thead>
+      <tbody>
+        {% for c in ciclos_futuros %}
+        <tr>
+          <td>{{ c.tipo | capitalize }}s</td>
+          <td>{{ c.inicio }}</td>
+          <td>{{ c.fin }}</td>
+          <td><span class="badge bg-success">{{ c.pagados }}</span></td>
+          <td><span class="badge bg-secondary">{{ c.programados }}</span></td>
+          <td><span class="badge {% if c.saldo < 0 %}bg-danger{% else %}bg-success{% endif %}">{{ c.saldo }}</span></td>
+          <td class="text-start small">{{ c.proximas | join(", ") }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="text-muted mb-0">No hay ciclos futuros con programación.</p>
+  {% endif %}
+{% else %}
+  <div class="table-responsive">
+    <table class="table table-bordered align-middle text-center">
+      <thead class="table-dark">
+        <tr><th>Ítem</th><th>Ciclo desde</th><th>Pagados</th><th>Pedidos</th><th>Entregados</th><th>Por entregar</th><th>Saldo</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Almuerzos</td>
+          <td>{{ fecha_ciclo_almuerzo }}</td>
+          <td><span class="badge bg-success">{{ alm_pagados }}</span></td>
+          <td><span class="badge bg-secondary">{{ alm_pedidos }}</span></td>
+          <td><span class="badge bg-success">{{ alm_entregados }}</span></td>
+          <td><span class="badge bg-warning">{{ alm_por_entregar }}</span></td>
+          <td><span class="badge {% if alm_saldo < 0 %}bg-danger{% else %}bg-success{% endif %}">{{ alm_saldo }}</span></td>
+        </tr>
+        <tr>
+          <td>Cenas</td>
+          <td>{{ fecha_ciclo_cena }}</td>
+          <td><span class="badge bg-success">{{ cen_pagados }}</span></td>
+          <td><span class="badge bg-secondary">{{ cen_pedidos }}</span></td>
+          <td><span class="badge bg-success">{{ cen_entregados }}</span></td>
+          <td><span class="badge bg-warning">{{ cen_por_entregar }}</span></td>
+          <td><span class="badge {% if cen_saldo < 0 %}bg-danger{% else %}bg-success{% endif %}">{{ cen_saldo }}</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+{% endif %}

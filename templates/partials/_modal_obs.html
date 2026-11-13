@@ -1,0 +1,12 @@
+<form hx-post="{{ url_for('validacion.obs_entrega') }}" hx-swap="none">
+  <input type="hidden" name="fecha" value="{{ iso }}">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="mb-0">Observación · {{ etiqueta }}</h5>
+    <button type="button" class="btn-close" aria-label="Cerrar" onclick="cerrarModal()"></button>
+  </div>
+  <textarea class="form-control mb-3" name="observaciones" rows="3"
+    placeholder="Problema con la entrega (déjelo vacío para borrar)">{{ observaciones }}</textarea>
+  <div class="text-end">
+    <button type="submit" class="btn btn-primary" hx-disabled-elt="this">Guardar</button>
+  </div>
+</form>

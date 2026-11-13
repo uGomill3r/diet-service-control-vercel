@@ -14,6 +14,7 @@ misma lógica de negocio.
 
 - **Backend:** Django 5.2 (sin `django.contrib.auth`; autenticación propia por sesión)
 - **Templates:** Jinja2 (no el motor nativo de Django — ver `diet_service_control/jinja2.py`)
+- **Interactividad:** HTMX servido desde `static/js/htmx.min.js` (sin CDN externo)
 - **Base de datos:** PostgreSQL en Neon (con pooler)
 - **Ejecución:** Vercel Functions (runtime Python, WSGI)
 - **Estáticos en producción:** CDN de Vercel (`collectstatic` automático)
@@ -27,13 +28,13 @@ apps/
   core/                    Modelos compartidos, decorador de autenticación, utilidades
   auth_app/                Login, logout, recuperación y cambio de contraseña
   dashboard/                Resumen general y pedidos pendientes
-  mes/                      Vista calendario mensual
-  semana/                   Vista semanal de estado de pedidos/entregas
   dia/                      Ver/editar un día puntual
   pagos/                    Registro de pagos y ciclos de pago
   reportes/                 Reporte de entregas por ciclo (copiable desde pantalla)
   log/                      Muestra el changelog en pantalla
   importar/                 Importación del plan de menú desde .eml
+  validacion/               Pantalla Hoy: validación de entregas (mobile-first, HTMX)
+  calendario/               Calendario unificado semana/mes y modal de edición de un día (HTMX)
 templates/                 Templates Jinja2 (compartidos entre apps)
 static/                    CSS, JS e íconos
 changelog/log.md            Registro editorial de acciones (texto plano)
@@ -82,6 +83,11 @@ python manage.py runserver
 
 Con `DEBUG=True`, `runserver` sirve los estáticos directamente.
 
+**HTMX:** descargar `htmx.min.js` (2.x) en `static/js/htmx.min.js`; no se usa CDN.
+
+**Migración 0002:** deduplica `entregas` y agrega la restricción única sobre `fecha`.
+Revisar los avisos `WARNING` de la migración antes de aplicarla en producción.
+
 ## Despliegue en Vercel
 
 1. Crear el proyecto en Neon y copiar la cadena de conexión **pooled**.
@@ -106,20 +112,28 @@ Notas:
 
 ## Funcionalidades principales
 
+- **Hoy (inicio):** tarjetas táctiles por día con botones Almuerzo/Cena que
+  fijan la entrega al instante (HTMX), contadores de pendientes y saldo en
+  barra fija, observación rápida de entrega por día, validación masiva «hasta ayer» y barra de navegación inferior
+  en móvil. La fecha de «hoy» se calcula en `America/Lima`.
 - **Dashboard:** saldo de almuerzos/cenas pagados vs. entregados dentro del
   ciclo vigente (con su fecha de inicio en la tabla), pestaña de ciclos
-  futuros que ya tienen programación, y listado de pendientes.
-- **Vistas mensual y semanal:** estado visual (entregado / pendiente / no
-  entregado) de cada día hábil.
+  futuros que ya tienen programación, y aviso de días sin validar con enlace a Hoy. Las pestañas se cargan por HTMX.
+- **Calendario (`/calendario`):** toggle semana/mes por HTMX (semana por defecto), navegación
+  anterior/siguiente sin recargar y modal para editar el pedido de un día. `/semana` y `/mes`
+  redirigen al calendario.
 - **Edición de día:** pedido (entrada, fondo, cena) y entrega de una fecha
-  puntual, con autocompletado de platos ya usados.
+  puntual (pantalla de respaldo; la edición habitual es el modal del calendario).
 - **Pagos y ciclos:** registro de pagos, apertura/cierre automático de
-  ciclos según el paquete contratado se agote.
+  ciclos según el paquete contratado se agote. Alta y edición de pagos y de
+  fechas de ciclo en la misma página (HTMX).
 - **Reportes:** listado de entregas por ciclo de pago en pantalla, con botón
   para copiar la tabla al portapapeles (se eliminó la exportación a Excel).
+  Los selectores de tipo y ciclo actualizan el reporte por HTMX.
 - **Importación de menú:** sube el `.eml` del correo "Tu pedido de menú
   quedó registrado" de dietservice.pe y carga automáticamente entrada,
-  fondo y cena de cada día en el rango del pedido.
+  fondo y cena de cada día en el rango del pedido. Subir → previsualizar →
+  confirmar ocurre en la misma página.
 - **Changelog:** vista de solo lectura del archivo `changelog/log.md`.
 
 ## Logging

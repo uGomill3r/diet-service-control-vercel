@@ -3,7 +3,8 @@ Funciones utilitarias del proyecto, migradas desde utils.py de Flask.
 """
 import logging
 from datetime import datetime, date, timedelta
-from apps.core.models import Pedido, Entrega, CicloPago
+from django.utils import timezone
+from apps.core.models import Entrega, CicloPago
 
 logger = logging.getLogger(__name__)
 
@@ -11,7 +12,7 @@ logger = logging.getLogger(__name__)
 def obtener_fechas_semana(numero_semana, año=None):
     """Devuelve los días abreviados y fechas de una semana ISO dada."""
     if año is None:
-        año = datetime.now().isocalendar().year
+        año = timezone.localdate().isocalendar().year
     lunes = datetime.strptime(f"{año}-W{int(numero_semana):02}-1", "%G-W%V-%u")
     dias = ["Lun", "Mar", "Mié", "Jue", "Vie"]
     fechas = [(lunes + timedelta(days=i)).strftime("%d-%m-%Y") for i in range(5)]
@@ -55,34 +56,11 @@ def estado_textual(fecha_obj, pedido, entrega, feriado):
         pendientes.append("almuerzo")
     if c_pedido and not c_entregado:
         pendientes.append("cena")
-    if pendientes and fecha_obj < datetime.now().date():
+    if pendientes and fecha_obj < timezone.localdate():
         return f"Entrega pendiente: {', '.join(pendientes)}"
     if not pendientes:
         return "Entregado"
     return ""
-
-
-def buscar_platos_similares(nombre):
-    """Busca platos similares en la base de datos usando el ORM de Django."""
-    logger.debug("Buscando platos similares a: %s", nombre)
-    resultados = (
-        Pedido.objects.filter(
-            entrada__icontains=nombre
-        )
-        .values_list("entrada", "fondo", "plato_cena")
-        .union(
-            Pedido.objects.filter(fondo__icontains=nombre).values_list(
-                "entrada", "fondo", "plato_cena"
-            )
-        )
-        .union(
-            Pedido.objects.filter(plato_cena__icontains=nombre).values_list(
-                "entrada", "fondo", "plato_cena"
-            )
-        )[:10]
-    )
-    logger.debug("Encontrados %d resultados para '%s'", len(list(resultados)), nombre)
-    return resultados
 
 
 def formatear_fecha_con_dia(fecha: date) -> str:
@@ -100,7 +78,7 @@ def contar_entregas_ciclo(ciclo: CicloPago) -> int:
     Para 'cena' cuenta registros con entregado_cena > 0.
     El rango es [fecha_inicio, fecha_fin] si está cerrado, o [fecha_inicio, hoy] si está abierto.
     """
-    fecha_hasta = ciclo.fecha_fin or date.today()
+    fecha_hasta = ciclo.fecha_fin or timezone.localdate()
     campo = f"entregado_{ciclo.tipo}__gt"
     count = Entrega.objects.filter(
         fecha__gte=ciclo.fecha_inicio,

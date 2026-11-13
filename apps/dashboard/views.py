@@ -7,7 +7,9 @@ from datetime import datetime, timedelta
 from django.db.models import Q, Sum
 from django.shortcuts import render, redirect
 from django.urls import reverse
+from django.utils import timezone
 from apps.core.decorators import protegido
+from apps.core.htmx import render_page_or_partial
 from apps.core.models import Pedido, Entrega, Pago, CicloPago
 from apps.core.utils import normalizar_fecha, formatear_fecha_con_dia
 
@@ -15,12 +17,12 @@ logger = logging.getLogger(__name__)
 
 
 def index(request):
-    """Raíz del sitio: redirige según estado de sesión."""
+    """Raíz del sitio: redirige a Hoy según estado de sesión."""
     if not request.session.get("autenticado"):
         return redirect(reverse("login"))
     if request.session.get("clave_temporal"):
         return redirect(reverse("cambiar_clave"))
-    return redirect(reverse("dashboard"))
+    return redirect(reverse("hoy"))
 
 
 def _ciclo_vigente(tipo, hoy):
@@ -139,7 +141,7 @@ def dashboard(request):
     """Vista principal del resumen de pedidos, entregas y pagos."""
     logger.info("Cargando dashboard")
 
-    hoy_date = datetime.now().date()
+    hoy_date = timezone.localdate()
 
     # Ciclo vigente por tipo (respeta fecha_fin editada manualmente)
     ciclo_alm = _ciclo_vigente("almuerzo", hoy_date)
@@ -194,16 +196,6 @@ def dashboard(request):
             else:
                 pedidos_por_validar_raw.append((fecha_date, errores))
 
-    # Formatear listas de pendientes
-    pedidos_pendientes = [
-        (f.strftime("%d-%m-%Y"), formatear_fecha_con_dia(f), e)
-        for f, e in sorted(pedidos_pendientes_raw, key=lambda x: x[0])[:5]
-    ]
-    pedidos_por_validar = [
-        (f.strftime("%d-%m-%Y"), formatear_fecha_con_dia(f), e)
-        for f, e in sorted(pedidos_por_validar_raw, key=lambda x: x[0])[:5]
-    ]
-
     ciclos_futuros = _ciclos_futuros(hoy_date, pedidos_qs)
 
     alm_saldo = pagos_alm - alm_entregados - alm_por_entregar
@@ -219,10 +211,16 @@ def dashboard(request):
         alm_saldo, cen_saldo, len(pedidos_pendientes_raw),
     )
 
-    return render(
+    tab = request.GET.get("tab", "vigente")
+    if tab not in ("vigente", "futuros"):
+        tab = "vigente"
+    return render_page_or_partial(
         request,
         "dashboard.html",
+        "partials/_resumen_tabs.html",
         {
+            "tab": tab,
+            "por_validar": len(pedidos_por_validar_raw),
             "alm_pagados": pagos_alm,
             "cen_pagados": pagos_cen,
             "alm_pedidos": alm_pedidos,
@@ -237,44 +235,6 @@ def dashboard(request):
             "ciclos_futuros": ciclos_futuros,
             "fecha_ciclo_almuerzo": fecha_ciclo_almuerzo,
             "fecha_ciclo_cena": fecha_ciclo_cena,
-            "pedidos_pendientes": pedidos_pendientes,
-            "pedidos_por_validar": pedidos_por_validar,
         },
     )
 
-
-@protegido
-def pedidos_siguientes(request):
-    """Lista completa de pedidos futuros aún no entregados."""
-    logger.info("Cargando pedidos siguientes")
-
-    pedidos_qs = Pedido.objects.values_list("fecha", "almuerzo", "cena")
-    entregas_qs = Entrega.objects.values_list("fecha", "entregado_almuerzo", "entregado_cena")
-    entregas = {normalizar_fecha(row[0]): (row[1] or 0, row[2] or 0) for row in entregas_qs}
-
-    hoy_date = datetime.now().date()
-    pedidos = []
-
-    for fecha_iso, a_pedido, c_pedido in pedidos_qs:
-        fecha_date = normalizar_fecha(fecha_iso)
-        a_entregado, c_entregado = entregas.get(fecha_date, (0, 0))
-        a_pedido = a_pedido or 0
-        c_pedido = c_pedido or 0
-
-        errores_almuerzo = bool(a_pedido and not a_entregado and fecha_date >= hoy_date)
-        errores_cena = bool(c_pedido and not c_entregado and fecha_date >= hoy_date)
-
-        if errores_almuerzo or errores_cena:
-            pedidos.append(
-                {
-                    "fecha_raw": fecha_date.strftime("%d-%m-%Y"),
-                    "fecha_fmt": formatear_fecha_con_dia(fecha_date),
-                    "almuerzo": errores_almuerzo,
-                    "cena": errores_cena,
-                }
-            )
-
-    pedidos.sort(key=lambda p: datetime.strptime(p["fecha_raw"], "%d-%m-%Y"))
-    logger.info("Pedidos siguientes encontrados: %d", len(pedidos))
-
-    return render(request, "pedidos_siguientes.html", {"pedidos": pedidos})

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>{% block title %}Control de Pedidos{% endblock %}</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="mobile-web-app-capable" content="yes" />
@@ -11,6 +11,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ static('style.css') }}">
+    <script src="{{ static('js/htmx.min.js') }}" defer></script>
     <!-- Favicon e ícono para dispositivos Apple -->
     <link rel="icon" type="image/png" href="{{ static('favicon.png') }}">
     <link rel="apple-touch-icon" href="{{ static('apple-touch-icon.png') }}">
@@ -27,9 +28,31 @@
       .navbar .dropdown-menu {
         min-width: 10rem;
       }
+      /* Pantalla Hoy: barra de contadores y botones táctiles */
+      .barra-hoy { position: sticky; top: 0; z-index: 1020; background: #fff;
+        border-bottom: 1px solid #dee2e6; padding: .5rem; margin: 0 -12px 1rem; }
+      .btn-entrega { width: 100%; min-height: 48px; font-size: 1.05rem; text-align: left; }
+      .btn-entrega.htmx-request { opacity: .5; }
+      /* Modal global (HTMX) y celdas de calendario */
+      dialog#modal-global { border: 0; border-radius: .75rem; padding: 1rem; width: min(92vw, 520px); max-height: 90vh; }
+      dialog#modal-global::backdrop { background: rgba(0, 0, 0, .5); }
+      .cal-cell .badge { font-size: .75rem; }
+      /* Barra de navegación inferior (móvil) */
+      .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 1030; display: flex;
+        background: #212529; padding-bottom: env(safe-area-inset-bottom); }
+      .bottom-nav a, .bottom-nav button { flex: 1; color: #adb5bd; text-align: center; padding: .5rem 0;
+        font-size: .75rem; border: 0; background: none; text-decoration: none; }
+      .bottom-nav .dropup { flex: 1; display: flex; }
+      .bottom-nav .dropup button { width: 100%; }
+      .bottom-nav .active { color: #fff; }
+      .bottom-nav i { display: block; font-size: 1.3rem; }
+      @media (max-width: 991.98px) {
+        body { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+        .navbar-toggler, footer { display: none; }
+      }
     </style>
 </head>
-<body class="bg-light">
+<body class="bg-light" hx-headers='{"X-CSRFToken": "{{ csrf_value(request) }}"}'>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
       <div class="container-fluid">
         <a class="navbar-brand d-flex align-items-center gap-2" href="/">
@@ -57,29 +80,20 @@
         <div class="collapse navbar-collapse" id="navbarMenu">
           <ul class="navbar-nav me-auto mb-2 mb-lg-0">
             <li class="nav-item">
+              <a class="nav-link" href="/hoy">
+                <i class="bi bi-check2-square me-2"></i>Hoy
+              </a>
+            </li>
+            <li class="nav-item">
               <a class="nav-link" href="/dashboard">
                 <i class="bi bi-bar-chart-fill me-2"></i>Resumen
               </a>
             </li>
 
-            {# Submenú Semana / Mes #}
-            <li class="nav-item dropdown">
-              <a class="nav-link dropdown-toggle" href="#" id="navVistas" role="button"
-                 data-bs-toggle="dropdown" aria-expanded="false">
-                <i class="bi bi-calendar-week me-2"></i>Semana
+            <li class="nav-item">
+              <a class="nav-link" href="/calendario">
+                <i class="bi bi-calendar-week me-2"></i>Calendario
               </a>
-              <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="navVistas">
-                <li>
-                  <a class="dropdown-item" href="/semana">
-                    <i class="bi bi-calendar-week me-2"></i>Vista semanal
-                  </a>
-                </li>
-                <li>
-                  <a class="dropdown-item" href="/mes">
-                    <i class="bi bi-calendar-month me-2"></i>Vista mensual
-                  </a>
-                </li>
-              </ul>
             </li>
 
             <li class="nav-item">
@@ -115,7 +129,64 @@
         {% block content %}{% endblock %}
     </div>
 
+    {% if request.session.get('autenticado') %}
+    <nav class="bottom-nav d-lg-none" aria-label="Navegación principal">
+      <a href="/hoy" class="{{ 'active' if request.path.startswith('/hoy') }}"><i class="bi bi-check2-square"></i>Hoy</a>
+      <a href="/calendario" class="{{ 'active' if request.path.startswith('/calendario') }}"><i class="bi bi-calendar-week"></i>Calendario</a>
+      <a href="/pagos" class="{{ 'active' if request.path.startswith('/pagos') }}"><i class="bi bi-cash-coin"></i>Pagos</a>
+      <div class="dropup">
+        <button type="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi bi-three-dots"></i>Más</button>
+        <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end">
+          <li><a class="dropdown-item" href="/dashboard">Resumen</a></li>
+          <li><a class="dropdown-item" href="/reporte_ciclo">Reportes</a></li>
+          <li><a class="dropdown-item" href="/importar">Importar</a></li>
+          <li><a class="dropdown-item" href="{{ url_for('log.log') }}">Log</a></li>
+          <li><hr class="dropdown-divider"></li>
+          <li><a class="dropdown-item" href="/logout">Salir</a></li>
+        </ul>
+      </div>
+    </nav>
+    {% endif %}
+    <dialog id="modal-global"><div id="modal-contenido"></div></dialog>
+    <div id="toast-zona" class="toast-container position-fixed top-0 start-50 translate-middle-x p-3" style="z-index:1100"></div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      // Avisos de error de HTMX: sin esto un fallo de red o del servidor pasaría inadvertido
+      function mostrarToast(mensaje, estilo) {
+        var el = document.createElement('div');
+        el.className = 'toast align-items-center text-bg-' + (estilo || 'danger') + ' border-0';
+        el.setAttribute('role', 'alert');
+        el.innerHTML = '<div class="d-flex"><div class="toast-body"></div>' +
+          '<button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div>';
+        el.querySelector('.toast-body').textContent = mensaje;
+        document.getElementById('toast-zona').appendChild(el);
+        el.addEventListener('hidden.bs.toast', function () { el.remove(); });
+        new bootstrap.Toast(el, { delay: 4000 }).show();
+      }
+      // Modal global: se abre cuando HTMX carga contenido en #modal-contenido
+      function cerrarModal() {
+        var d = document.getElementById('modal-global');
+        if (d.open) d.close();
+        document.getElementById('modal-contenido').innerHTML = '';
+      }
+      document.body.addEventListener('htmx:afterSwap', function (e) {
+        if (e.detail.target && e.detail.target.id === 'modal-contenido') {
+          var d = document.getElementById('modal-global');
+          if (!d.open) d.showModal();
+        }
+      });
+      document.body.addEventListener('cerrarModal', cerrarModal);
+      document.getElementById('modal-global').addEventListener('click', function (e) {
+        if (e.target === this) cerrarModal();
+      });
+      document.body.addEventListener('htmx:responseError', function (e) {
+        // Los 400 del servidor traen un mensaje corto y legible; el resto, un aviso genérico
+        var xhr = e.detail.xhr, txt = xhr && xhr.responseText;
+        mostrarToast(xhr && xhr.status === 400 && txt && txt.length < 200 ? txt : 'No se guardó, reintente.');
+      });
+      document.body.addEventListener('htmx:sendError', function () { mostrarToast('Sin conexión: no se guardó, reintente.'); });
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
     <script>
@@ -139,6 +210,26 @@
             fp.altInput.required = true; // la validación nativa se hace sobre el campo visible
           }
         });
+      });
+    </script>
+    <script>
+      // Inicializa flatpickr en campos de fecha cargados por HTMX (los de la carga inicial los cubre el script anterior)
+      function iniciarFechaHtmx(el) {
+        if (el._flatpickr) return;
+        var esRequerido = el.required;
+        el.required = false;
+        var fp = flatpickr(el, {
+          dateFormat: 'Y-m-d', altInput: true, altFormat: 'd/m/Y',
+          altInputClass: el.className.replace('flatpickr-date', '').trim(),
+          locale: 'es', allowInput: true,
+        });
+        if (esRequerido && fp.altInput) fp.altInput.required = true;
+      }
+      document.body.addEventListener('htmx:load', function (e) {
+        var raiz = e.detail.elt;
+        if (!raiz || raiz === document.body || !raiz.querySelectorAll) return;
+        if (raiz.matches('.flatpickr-date')) iniciarFechaHtmx(raiz);
+        raiz.querySelectorAll('.flatpickr-date').forEach(iniciarFechaHtmx);
       });
     </script>
     <footer class="bg-dark text-white text-center py-3 mt-5">

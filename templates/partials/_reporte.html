@@ -1,0 +1,60 @@
+{% set base = url_for('reportes.reporte_ciclo') %}
+<h4 class="mb-3">Entregas de {{ tipo | capitalize }}</h4>
+
+<form method="GET" action="{{ base }}" class="row g-3 align-items-end mb-4">
+  <div class="col-md-4">
+    <label for="tipo" class="form-label">Tipo de reporte</label>
+    <select class="form-select" name="tipo" id="tipo"
+      hx-get="{{ base }}" hx-params="tipo" hx-trigger="change"
+      hx-target="#reporte-contenido" hx-swap="innerHTML" hx-push-url="true">
+      <option value="almuerzo" {{ 'selected' if tipo == 'almuerzo' }}>Almuerzo</option>
+      <option value="cena" {{ 'selected' if tipo == 'cena' }}>Cena</option>
+    </select>
+  </div>
+  <div class="col-md-5">
+    <label for="fecha" class="form-label">Inicio del ciclo</label>
+    <select class="form-select" name="fecha" id="fecha"
+      hx-get="{{ base }}" hx-include="[name='tipo']" hx-trigger="change"
+      hx-target="#reporte-contenido" hx-swap="innerHTML" hx-push-url="true">
+      <option value="">-- Seleccionar --</option>
+      {% for id, inicio, fin in ciclos %}
+      <option value="{{ inicio.isoformat() }}" {{ 'selected' if ciclo_seleccionado == inicio }}>
+        {{ inicio.strftime('%d-%m-%Y') }}{% if not fin %} (abierto){% endif %}
+      </option>
+      {% endfor %}
+    </select>
+  </div>
+  <noscript><div class="col-md-3"><button type="submit" class="btn btn-primary">Ver reporte</button></div></noscript>
+</form>
+
+{% if ciclo_info %}
+<div class="alert alert-info">
+  <strong>Ciclo seleccionado:</strong><br>
+  Inicio: {{ ciclo_info[0].strftime('%d-%m-%Y') }}<br>
+  Fin: {{ ciclo_info[1].strftime('%d-%m-%Y') if ciclo_info[1] else '—' }}<br>
+  Tipo: {{ tipo | capitalize }}<br>
+  Entregas pagadas: {{ cantidad_pagada }}
+</div>
+{% endif %}
+
+{% if registros %}
+<div class="mb-3 mt-4">
+  <button type="button" class="btn btn-outline-primary me-2" onclick="copiarTabla()">📋 Copiar tabla</button>
+</div>
+{% if registros | selectattr("excedido") | list | length > 0 %}
+<div class="mb-2"><span class="badge bg-warning text-dark">⚠️ Días fuera del rango cubierto</span></div>
+{% endif %}
+<table class="table table-bordered table-sm" id="tablaReporte">
+  <thead class="table-light"><tr><th>#</th><th>Fecha</th></tr></thead>
+  <tbody>
+    {% for r in registros %}
+    <tr {% if r.excedido %}class="table-warning"{% endif %}>
+      <td>{{ loop.index }}</td>
+      <td>{{ r.fecha }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% elif ciclo_info %}
+<p class="text-muted">Sin entregas registradas en este ciclo.</p>
+{% endif %}
